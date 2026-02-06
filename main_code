@@ -1,0 +1,69 @@
+#include "SR04.h"
+#define TRIG_PIN 12
+#define ECHO_PIN 11
+const int motorPin1 = 8;  // IN1
+const int motorPin2 = 9;  // IN2
+const int enablePin = 10; // ENA (PWM for speed)
+int buttonPin = 6; 
+int state = 0; // variable that enables the button to turn LED "on" or "off"
+SR04 sr04 = SR04(ECHO_PIN,TRIG_PIN);
+bool catchingMode = false; 
+long a; 
+
+void open_claw() {
+  // Open gripper
+  digitalWrite(motorPin1, LOW);
+  digitalWrite(motorPin2, HIGH);
+  analogWrite(enablePin, 200);
+  delay(3500); // adjust timing
+
+  stopMotor(); // stops the gripper
+}
+
+void close_claw() {
+  // Close gripper
+  digitalWrite(motorPin1, HIGH);
+  digitalWrite(motorPin2, LOW);
+  analogWrite(enablePin, 240);  // Speed control (0-255)
+  delay(3000);
+
+  stopMotor(); //stops the gripper
+}
+
+void stopMotor() {
+  digitalWrite(motorPin1, LOW);
+  digitalWrite(motorPin2, LOW);
+}
+
+void setup() {
+  // put your setup code here, to run once:
+  pinMode(motorPin1, OUTPUT);
+  pinMode(motorPin2, OUTPUT);
+  pinMode(enablePin, OUTPUT);
+  pinMode(buttonPin, INPUT_PULLUP);
+  Serial.begin(9600);
+  delay(800);
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  a=sr04.Distance();
+  if(digitalRead(buttonPin) == LOW && state == 0){
+    catchingMode = true;
+    open_claw();
+    state += 1;
+  }
+  
+  if(catchingMode == true && a <= 14 && a >= 12) {
+      close_claw();
+      delay(3000);
+      open_claw();
+      delay(2000);
+  }
+  
+  if(digitalRead(buttonPin) == LOW && state == 1) {
+      catchingMode = false;
+      close_claw();
+      state -= 1;
+  }
+}
